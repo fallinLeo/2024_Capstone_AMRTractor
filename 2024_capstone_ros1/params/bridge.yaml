@@ -1,0 +1,27 @@
+topics:
+  - topic: /initialpose
+    type: geometry_msgs/msg/PoseWithCovarianceStamped
+    queue_size: 1
+    
+  - topic: /move_base_simple/goal
+    type: geometry_msgs/msg/PoseStamped
+    queue_size: 1
+
+  - topic: /plan_hybrid
+    type: nav_msgs/msg/Path
+    queue_size: 1
+
+  - topic: /tf_static
+    type: tf2_msgs/msg/TFMessage
+    queue_size: 1
+    qos:
+      history: keep_all
+      durability: transient_local
+
+  - topic: /tf
+    type: tf2_msgs/msg/TFMessage
+    queue_size: 1
+    qos:
+      history: keep_all
+      durability: transient_local
+

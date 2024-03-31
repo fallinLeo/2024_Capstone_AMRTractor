@@ -1,0 +1,1 @@
+topics: [{topic: /plan, type: nav_msgs/Path, queue_size: 100}]
