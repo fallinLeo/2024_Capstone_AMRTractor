@@ -21,6 +21,9 @@ from geometry_msgs.msg import QuaternionStamped, TransformStamped
 from tf2_ros import StaticTransformBroadcaster
 from geometry_msgs.msg import Quaternion
 
+import serial #Imu Yaw값만
+
+
 
 #TF 발행하고 Odometry 계산해 Odom publish하는 코드
 class TF_Publisher(Node):
@@ -28,8 +31,10 @@ class TF_Publisher(Node):
     super().__init__('tf_pub')
     # qos_profile = QoSProfile(depth=10)
     self.odom_pub = self.create_publisher(Odometry,'/odom',10)
-    self.imu_sub = self.create_subscription(Imu, '/imu_data', self.imu_callback, 10)
-    # self.imu_yaw_sub = self.create_subscription(Imu, '/data/imu_data', self.imu_yaw_callback,10)
+    # self.imu_sub = self.create_subscription(Imu, '/imu_data', self.imu_callback, 10)
+    self.py_serial = serial.Serial('/dev/ttyACM0', 9600, timeout=0.03)
+    self.timer = self.create_timer(0.001, self.read_serial_data)
+
 
     self.encoderL_sub = self.create_subscription(Int16,'/encoderL',self.encoderL_callback,10)
     self.encoderR_sub = self.create_subscription(Int16,'/encoderR',self.encoderR_callback,10)
@@ -52,9 +57,12 @@ class TF_Publisher(Node):
     self.last_time[1] = time.time() #encoderL
     self.last_time[2] = time.time() #encoderR
     self.last_time[3] = time.time() 
-  
-    # self.encR_flag = False # 깃발
-    # self.encL_flag = False
+
+    #low-pass filter변수들
+    self.filtered_imu_yaw = 0.0
+    self.alpha = 0.45
+    # self.imu_pub = self.create_publisher(Float32,'/imu_yaw',10) #그래프 계산용 토픽 퍼블리시
+    # self.imu_filter_pub = self.create_publisher(Float32,'imu_yaw_filtered',10)
 
     # #robot_state_publisher  주석처리
     # self.baseframe_broadcaster = StaticTransformBroadcaster(self)
@@ -64,7 +72,27 @@ class TF_Publisher(Node):
     self.broadcaster = TransformBroadcaster(self)
     #robot_state_publisher 여기까지 주석처리
 
-
+  def read_serial_data(self):
+      if self.py_serial.in_waiting > 0:
+          line = self.py_serial.readline().decode('utf-8').strip()
+          # 공백으로 구분된 데이터를 리스트로 변환
+          data_list = line.split()
+          try:
+              # 리스트의 마지막 요소를 float으로 변환하여 저장
+              self.imu_yaw = float(data_list[-1])
+              #low-pass-filter
+              self.filtered_imu_yaw = self.filtered_imu_yaw + self.alpha * (self.imu_yaw - self.filtered_imu_yaw)
+              # self.get_logger().info(f'필터 전: {self.imu_yaw}')
+              self.get_logger().info(f'필터 후: {self.filtered_imu_yaw}')
+              #imu 헤딩 퍼블리시(그래프 계산용)
+              # msg1 = Float32()
+              # msg2 = Float32() 
+              # msg1.data = self.imu_yaw
+              # msg2.data = self.filtered_imu_yaw
+              # self.imu_pub.publish(msg1)
+              # self.imu_filter_pub.publish(msg2)
+          except ValueError as e:
+              self.get_logger().error(f'Error converting data to float: {e}')
 
     
 
@@ -131,6 +159,9 @@ class TF_Publisher(Node):
   
   def rpm_to_rad_per_sec(self,rpm):
     return (2 * math.pi * rpm) / 60
+  def degrees_to_radians(self,degrees):
+    radians = degrees * (math.pi / 180)
+    return radians
   
  
   def encoderL_callback(self,msg):
@@ -152,9 +183,9 @@ class TF_Publisher(Node):
      self.calculate_odometry(duration)
      self.last_time[2] = current_time
   
-  def imu_callback(self, msg):
-    quaternion = msg.orientation
-    self.imu_yaw = self.euler_from_quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
+  # def imu_callback(self, msg):
+  #   quaternion = msg.orientation
+  #   self.imu_yaw = self.euler_from_quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
     # header = msg.header
     # current_time = header.stamp.sec + header.stamp.nanosec * 1e-9
     # duration = Duration(seconds=current_time - self.last_time[2])
@@ -200,16 +231,16 @@ class TF_Publisher(Node):
         # print(f"delta s : {delta_s}")
 
         if self.use_imu_:
-            # theta = self.imu_yaw 좌회전 == 각속도 w값 양의 값.
-            # delta_theta = theta - self.last_theta
-            theta = self.wheels_radius_ * (wheel_r - wheel_l) / self.wheels_separation_  # IMU 실제 사용하면 여기 두 줄 다 없애기!
-            delta_theta = theta
+            theta = self.filtered_imu_yaw #좌회전 == 각속도 w값 양의 값. 필터된값 사용.
+            delta_theta = theta - self.last_theta
+            # theta = self.wheels_radius_ * (wheel_r - wheel_l) / self.wheels_separation_  # IMU 실제 사용하면 여기 두 줄 다 없애기!
+            # delta_theta = theta
             
         else:
             theta = self.wheels_radius_ * (wheel_r - wheel_l) / self.wheels_separation_
             delta_theta = theta
 
-        # compute odometric pose
+        # compute odometric pose delta_s = wheel_radius*(0L+0R)/2
         self.robot_pose_[0] += delta_s * cos(self.robot_pose_[2] + (delta_theta / 2.0))
         self.robot_pose_[1] += delta_s * sin(self.robot_pose_[2] + (delta_theta / 2.0))
         self.robot_pose_[2] += delta_theta
@@ -217,7 +248,8 @@ class TF_Publisher(Node):
         # print(f"duration : {step_time}")
         # print(f"left_wheel_R0 : {self.wheels_separation_*wheel_l}, right_wheel_R0 : {self.wheels_separation_ * wheel_r}")
         # print(f"x : {self.robot_pose_[0]}, y : {self.robot_pose_[1]}, heading : {self.robot_pose_[2]}")
-        print(f"heading : {self.robot_pose_[2]}")
+        print(f"heading_for_encoder : {self.robot_pose_[2]}")
+        print(f"heading_for_imu : {self.degrees_to_radians(self.filtered_imu_yaw)}")
 
         # compute odometric instantaneous velocity
         v = delta_s / step_time
@@ -249,11 +281,10 @@ class TF_Publisher(Node):
         self.odom.twist.twist.linear.x = self.robot_vel_[0]
         self.odom.twist.twist.linear.z = self.robot_vel_[2]
 
-        # self.transform.transform.translation.x = self.odom.pose.pose.position.x
-        # self.transform.transform.translation.y = self.odom.pose.pose.position.y
+
         # self.transform.transform.translation.z = self.odom.pose.pose.position.z
-        self.transform.transform.translation.x = 0.0
-        self.transform.transform.translation.y = 0.0
+        self.transform.transform.translation.x = self.odom.pose.pose.position.x
+        self.transform.transform.translation.y = self.odom.pose.pose.position.y
         self.transform.transform.translation.z = self.odom.pose.pose.position.z
         ##
         q = self.euler_to_quaternion(0, 0, self.robot_pose_[2])
@@ -263,7 +294,7 @@ class TF_Publisher(Node):
         self.odom_pub.publish(self.odom)
 
 
-        self.last_theta += theta
+        self.last_theta = theta
         # print(f"last_theta : {self.last_theta}")
         return True
        
