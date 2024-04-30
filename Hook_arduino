@@ -1,0 +1,54 @@
+#define encoderPinA 2
+#define encoderPinB 3
+#define motorDirPin 8
+#define motorPwmPin 9
+
+long encoderPos =0;
+String str_ang;
+int ang;
+int error;
+
+void doEncoderA() {encoderPos +=(digitalRead(encoderPinA)==digitalRead(encoderPinB))?1:-1;}
+void doEncoderB() {encoderPos +=(digitalRead(encoderPinA)==digitalRead(encoderPinB))?-1:1;}
+
+void setup() {
+  pinMode(encoderPinA, INPUT);
+  pinMode(encoderPinB, INPUT);
+  attachInterrupt(0, doEncoderA,CHANGE);
+  attachInterrupt(0, doEncoderB,CHANGE);
+
+  pinMode(motorDirPin, OUTPUT);
+  pinMode(motorPwmPin, OUTPUT);
+  Serial.begin(9600);
+}
+//49/1 motor ratio
+
+void loop() {
+  if(Serial.available()>0){
+    str_ang = Serial.readStringUntil('\n');
+    ang = str_ang.toInt();
+    Serial.println(ang);
+  }
+  error = ang - encoderPos*0.6006; //504/1 , 294/1 , 144/1, 104/1, 61/1, 49/1
+  
+      if(error <-2 ){
+          digitalWrite(motorDirPin,HIGH);
+          analogWrite(motorPwmPin, 18);
+      }
+    
+
+      else if(error >2){
+          digitalWrite(motorDirPin,LOW);
+          analogWrite(motorPwmPin, 18);
+      }
+      else if(error>-2 || error < 2){
+        digitalWrite(motorDirPin,HIGH);
+        analogWrite(motorPwmPin, 0);
+
+
+      }     
+    
+  Serial.print("encoderPos: ");
+  Serial.println(encoderPos*0.6006);
+  Serial.println(ang);
+}
