@@ -9,7 +9,7 @@ from rclpy.duration import Duration
 from sensor_msgs.msg import JointState, Imu
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, PoseWithCovarianceStamped, Twist
 
 
 class Odom_class(Node):
@@ -33,6 +33,7 @@ class Odom_class(Node):
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
         self.frame_id_of_odometry = 'odom'
         self.child_frame_id_of_odometry = 'robot_footprint'
+        self.twist_vel2 = self.create_publisher(Twist, 'cmd_vel2',10)
         
 
 
@@ -47,6 +48,13 @@ class Odom_class(Node):
             self.sync.registerCallback(self.joint_state_and_imu_callback)
         else:
             self.joint_state_sub = self.create_subscription(JointState, 'joint_states', self.joint_state_callback, 10)
+        
+        self.subscription = self.create_subscription(
+            PoseWithCovarianceStamped,
+            '/initialpose',
+            self.initial_pose_callback,
+            10)
+        self.subscription  # prevent unused variable warning
 
 
 
@@ -57,7 +65,7 @@ class Odom_class(Node):
         
 
         self.diff_joint_positions[0] = enc_L
-        self.diff_joint_positions[1] = enc_R
+        self.diff_joint_positions[1] = enc_R      #두개의 단위 라디안?
         # self.last_joint_positions[0] = joint_state.position[0]
         # self.last_joint_positions[1] = joint_state.position[1]
     
@@ -66,8 +74,20 @@ class Odom_class(Node):
             imu_msg.orientation.x * imu_msg.orientation.y + imu_msg.orientation.w * imu_msg.orientation.z,
             0.5 - imu_msg.orientation.y * imu_msg.orientation.y - imu_msg.orientation.z * imu_msg.orientation.z)
         print(f"imu_angle : {self.imu_angle}")
-        #위의 코드가 정석인데, imu error 누적으로 인해 사용할 수 없음 -> yaw값으로 받아와서 사용.
         # self.imu_angle = self.quaternion_to_euler(imu_msg.orientation.x, imu_msg.orientation.y, imu_msg.orientation.z, imu_msg.orientation.w) #imu_yaw값
+    
+    def initial_pose_callback(self, msg):
+      # 쿼터니언에서 오일러 각으로 변환
+      orientation_q = msg.pose.pose.orientation
+      orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+      (roll, pitch, yaw) = tf_transformations.euler_from_quaternion(orientation_list)
+
+      # 로봇의 위치 업데이트
+      self.robot_pose[0] = msg.pose.pose.position.x
+      self.robot_pose[1] = msg.pose.pose.position.y
+      # 로봇의 헤딩 방향 업데이트
+      self.robot_pose[2] = yaw
+      self.imu_angle = yaw
         
     
 
@@ -135,7 +155,7 @@ class Odom_class(Node):
         if math.isnan(wheel_r):
             wheel_r = 0.0
 
-        delta_s = self.wheels_radius * (wheel_r + wheel_l) / 2.0
+        delta_s = self.wheels_radius * (wheel_r + wheel_l) / 2.0   #R 세타, m * rad
         
 
         if self.use_imu:
@@ -157,7 +177,7 @@ class Odom_class(Node):
 
         self.get_logger().info(f"x : {self.robot_pose[0]}, y : {self.robot_pose[1]}")
 
-        v = delta_s / step_time
+        v = delta_s / step_time #m * rad / second  -> m/s
         w = delta_theta / step_time
 
         self.robot_vel[0] = v
@@ -189,6 +209,10 @@ class Odom_class(Node):
         odom_msg.twist.twist.angular.z = self.robot_vel[2]
 
         # Set the covariance values if needed
+        cmd_vel = Twist()
+        cmd_vel.linear.x = self.robot_vel[0]
+        cmd_vel.angular.z = self.robot_vel[2]
+        self.twist_vel2.publish(cmd_vel)
 
         odom_tf = TransformStamped()
 
