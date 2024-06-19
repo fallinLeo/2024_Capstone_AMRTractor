@@ -65,7 +65,7 @@ class Odom_class(Node):
         
 
         self.diff_joint_positions[0] = enc_L
-        self.diff_joint_positions[1] = enc_R      #두개의 단위 라디안?
+        self.diff_joint_positions[1] = enc_R      #두개의 단위 라디안
         # self.last_joint_positions[0] = joint_state.position[0]
         # self.last_joint_positions[1] = joint_state.position[1]
     
@@ -85,9 +85,10 @@ class Odom_class(Node):
       # 로봇의 위치 업데이트
       self.robot_pose[0] = msg.pose.pose.position.x
       self.robot_pose[1] = msg.pose.pose.position.y
-      # 로봇의 헤딩 방향 업데이트
+      # 로봇의 헤딩 방향 업데이트 및 yaw값 특정값으로 초기화
       self.robot_pose[2] = yaw
       self.imu_angle = yaw
+      self.last_theta = yaw
         
     
 
@@ -129,7 +130,7 @@ class Odom_class(Node):
         self.update_joint_state(joint_state_msg,duration)
         self.calculate_odometry(duration)
         self.publish(joint_state_msg.header.stamp)
-        # 여기에 JointState 메시지를 처리하는 로직을 구현합니다
+
         last_time = joint_state_msg.header.stamp
     
     def calculate_odometry(self, duration: Duration):
@@ -175,7 +176,7 @@ class Odom_class(Node):
         # self.robot_pose[2] += round(self.degrees_to_radians(delta_theta),3) #소수점 3자리까지만
         print(f"robot_pose[2] = {self.robot_pose[2]}")
 
-        self.get_logger().info(f"x : {self.robot_pose[0]}, y : {self.robot_pose[1]}")
+        # self.get_logger().info(f"x : {self.robot_pose[0]}, y : {self.robot_pose[1]}")
 
         v = delta_s / step_time #m * rad / second  -> m/s
         w = delta_theta / step_time

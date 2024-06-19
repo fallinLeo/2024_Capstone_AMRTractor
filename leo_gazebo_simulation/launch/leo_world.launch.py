@@ -19,7 +19,7 @@ def generate_launch_description():
 
     robot_file = "tractor.urdf"
     package_name = "leo_gazebo_simulation"
-    world_file_name = "Basic_world.world"
+    world_file_name = "Basic_world.world" #Basic_world.world
 
     # full  path to urdf and world file
     world = os.path.join(
@@ -51,7 +51,7 @@ def generate_launch_description():
         package='gazebo_ros',
         executable='spawn_entity.py',
         output='screen',
-        arguments=['-topic', 'robot_description', '-entity', 'tractor', '-x', '0.0', '-y', '0.0', '-z', '3.0']
+        arguments=['-topic', 'robot_description', '-entity', 'tractor', '-x', '0.0', '-y', '1.5', '-z', '3.0']
     )
 
     start_gazebo_client_cmd = IncludeLaunchDescription(

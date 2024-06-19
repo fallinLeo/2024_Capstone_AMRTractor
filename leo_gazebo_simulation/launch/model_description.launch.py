@@ -19,7 +19,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
     package_name = "leo_gazebo_simulation"
-    robot_file = "tractor_notgazebo.urdf"
+    robot_file = "cart.urdf"
     rviz_file = "description.rviz"
 
     urdf = os.path.join(get_package_share_directory(package_name), "urdf", robot_file)
