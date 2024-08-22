@@ -43,26 +43,45 @@ void Gripper::EncoderB() {
   instance->doEncoderB();
 }
 
-void Gripper::publish_imu_data(cIMU& imu) {
-    imu_msg.header.stamp.sec = millis() / 1000;
-    imu_msg.header.stamp.nanosec = (millis() % 1000) * 1000000;
-    strcpy(imu_msg.header.frame_id.data, "imu_link");
-    imu_msg.header.frame_id.size = strlen(imu_msg.header.frame_id.data);
-    imu_msg.header.frame_id.capacity = sizeof(imu_msg.header.frame_id.data);
+// void Gripper::publish_imu_data(cIMU& imu) {
+//     imu_msg.header.stamp.sec = millis() / 1000;
+//     imu_msg.header.stamp.nanosec = (millis() % 1000) * 1000000;
+//     strcpy(imu_msg.header.frame_id.data, "imu_link");
+//     imu_msg.header.frame_id.size = strlen(imu_msg.header.frame_id.data);
+//     imu_msg.header.frame_id.capacity = sizeof(imu_msg.header.frame_id.data);
 
-    imu_msg.orientation.x = imu.rpy[0];
-    imu_msg.orientation.y = imu.rpy[1];
-    imu_msg.orientation.z = imu.rpy[2];
-    imu_msg.orientation.w = 0.0; // 필요시 수정
+//     imu_msg.orientation.x = imu.rpy[0];
+//     imu_msg.orientation.y = imu.rpy[1];
+//     imu_msg.orientation.z = imu.rpy[2];
+//     imu_msg.orientation.w = 0.0; // 필요시 수정
 
-    imu_msg.angular_velocity.x = imu.gyroData[0] * GYRO_FACTOR;
-    imu_msg.angular_velocity.y = imu.gyroData[1] * GYRO_FACTOR;
-    imu_msg.angular_velocity.z = imu.gyroData[2] * GYRO_FACTOR;
+//     imu_msg.angular_velocity.x = imu.gyroData[0] * GYRO_FACTOR;
+//     imu_msg.angular_velocity.y = imu.gyroData[1] * GYRO_FACTOR;
+//     imu_msg.angular_velocity.z = imu.gyroData[2] * GYRO_FACTOR;
 
-    imu_msg.linear_acceleration.x = imu.accData[0] * ACCEL_FACTOR;
-    imu_msg.linear_acceleration.y = imu.accData[1] * ACCEL_FACTOR;
-    imu_msg.linear_acceleration.z = imu.accData[2] * ACCEL_FACTOR;
-}
+//     imu_msg.linear_acceleration.x = imu.accData[0] * ACCEL_FACTOR;
+//     imu_msg.linear_acceleration.y = imu.accData[1] * ACCEL_FACTOR;
+//     imu_msg.linear_acceleration.z = imu.accData[2] * ACCEL_FACTOR;
+
+//     Serial.print("Orienta#include <IMU.h>tion: ");
+//     Serial.print(imu_msg.orientation.x); Serial.print(", ");
+//     Serial.print(imu_msg.orientation.y); Serial.print(", ");
+//     Serial.println(imu_msg.orientation.z);
+
+//     Serial.print("Gyro: ");
+//     Serial.print(imu_msg.angular_velocity.x); Serial.print(", ");
+//     Serial.print(imu_msg.angular_velocity.y); Serial.print(", ");
+//     Serial.println(imu_msg.angular_velocity.z);
+
+//     Serial.print("Accel: ");
+//     Serial.print(imu_msg.linear_acceleration.x); Serial.print(", ");
+//     Serial.print(imu_msg.linear_acceleration.y); Serial.print(", ");
+//     Serial.println(imu_msg.linear_acceleration.z);
+
+//     RCSOFTCHECK(rcl_publish(&imu_publisher, &imu_msg,NULL));
+//     RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+//     //Serial.println("rcl_ok");
+// }
 
 
 void Gripper::gripper_setup() {
@@ -99,20 +118,20 @@ void Gripper::gripper_setup() {
         "start_trailer"));
 
     // ROS IMU publisher initialization
-    RCCHECK(rclc_publisher_init_default(
-        &imu_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
-        "imu_data"));
+    // RCCHECK(rclc_publisher_init_default(
+    //     &imu_publisher,
+    //     &node,
+    //     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
+    //     "imu_data"));
 
     // Initialize ROS executor
     RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-    RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &MyRobot::subscription_callback, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &Gripper::subscription_callback, ON_NEW_DATA));
 }
 
 void Gripper::gripper_loop() {
     delay(100);
     RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
-    
+    Serial.print("gripper_loop");
 }
 
