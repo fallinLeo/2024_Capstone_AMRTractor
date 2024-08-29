@@ -4,7 +4,7 @@ amcl:
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
-    alpha4: 0.2
+    alpha4: 0.4
     alpha5: 0.2
     base_frame_id: "base_footprint"
     beam_skip_distance: 0.5
@@ -56,10 +56,7 @@ bt_navigator:
     bt_loop_duration: 10 #10
     default_server_timeout: 20 #20
     wait_for_service_timeout: 1000
-    # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
-    # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
-    # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
-    # They can be set here or via a RewrittenYaml remap from a parent launch file to Nav2.
+    behavior_tree: "navigate_w_replanning_only_if_goal_is_updated.xml"
     plugin_lib_names:
       - nav2_compute_path_to_pose_action_bt_node
       - nav2_compute_path_through_poses_action_bt_node
@@ -117,73 +114,78 @@ bt_navigator_navigate_to_pose_rclcpp_node:
   ros__parameters:
     use_sim_time: False
     
-    
 controller_server:
   ros__parameters:
+    use_sim_time: False
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
-    min_theta_velocity_threshold: 0.01
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
-    goal_checker_plugins: "goal_checker"
+    goal_checker_plugins: ["goal_checker"]
     controller_plugins: ["FollowPath"]
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.3 #0.5
+      required_movement_radius: 0.5
       movement_time_allowance: 10.0
+
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.5
+      xy_goal_tolerance: 1.0 #0.4
+      yaw_goal_tolerance: 1.2 #0.6
       stateful: True
+
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.3 #0.5
-      lookahead_dist: 1.2 #0.6 1.0ㄱㅊ
-      min_lookahead_dist: 0.8 #0.6->
-      max_lookahead_dist: 1.4 #1.2->
-      lookahead_time: 2.0 #앞서볼 시간 1.5 2.0ㄱㅊ
-      rotate_to_heading_angular_vel: 0.5 #1.8
-      transform_tolerance: 0.1
-      use_velocity_scaled_lookahead_dist: false
+      desired_linear_vel: 0.4
+      lookahead_dist: 2.0 #1.2
+      min_lookahead_dist: 1.5
+      max_lookahead_dist: 2.4
+      lookahead_time: 2.0 #2.0
+      rotate_to_heading_angular_vel: 0.4
+      steering_angle_limit: 1.047 #아키만 최대 조향각도 -> 훅 최대각도로 설정 | 적용되는지 모르겠음
+      transform_tolerance: 0.05 #0.1 변환 허용 오차. 줄이면 정밀한 경로따라가기
+      use_velocity_scaled_lookahead_dist: false #false
       min_approach_linear_velocity: 0.05
       approach_velocity_scaling_dist: 1.0
       use_collision_detection: true
-      max_allowed_time_to_collision_up_to_carrot: 1.0
+      max_allowed_time_to_collision_up_to_carrot: 1.5 #1.0
       use_regulated_linear_velocity_scaling: true
       use_cost_regulated_linear_velocity_scaling: false
       regulated_linear_scaling_min_radius: 0.9
       regulated_linear_scaling_min_speed: 0.25
       use_fixed_curvature_lookahead: false
-      curvature_lookahead_dist: 1.2 #1.0
-      use_rotate_to_heading: true
-      rotate_to_heading_min_angle: 0.65 #0.785 목표 방향으로 회전할 최소 각도
-      max_angular_accel: 2.5 #3.2
+      curvature_lookahead_dist: 1.2
+      use_rotate_to_heading: false #true
+      rotate_to_heading_min_angle: 0.0 #0.65
+      max_angular_accel: 2.5
       max_robot_pose_search_dist: 10.0
       interpolate_curvature_after_goal: false
-      cost_scaling_dist: 0.6 #0.3
-      cost_scaling_gain: 1.2 #1.0
-      inflation_cost_scaling_factor: 3.0
+      cost_scaling_dist: 0.4 #0.6
+      cost_scaling_gain: 1.5 #1.2
+      inflation_cost_scaling_factor: 8.0 #3.0
+
 
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 3.0 #5.0
-      publish_frequency: 2.0 #2.0
+      update_frequency: 10.0 #5.0
+      publish_frequency: 4.0 #2.0
       global_frame: odom
       robot_base_frame: base_link
       use_sim_time: False
       rolling_window: true
-      width: 3 #3
-      height: 3 #3
+      width: 4 #3
+      height: 4 #3
       resolution: 0.05
       robot_radius: 0.3
       plugins: ["obstacle_layer","voxel_layer", "inflation_layer"] #obstacle_layer추가함
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 8.0 #3.0
-        inflation_radius: 0.55 #0.6
+        cost_scaling_factor: 0.2 #3.0,  8.0->
+        inflation_radius: 0.6 #0.6
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -222,7 +224,7 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: True
+      use_sim_time: False
       robot_radius: 0.3
       resolution: 0.05
       track_unknown_space: true
@@ -246,9 +248,15 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 8.0 #3.0 , 8.0
+        cost_scaling_factor: 0.2 #3.0 , 8.0
         inflation_radius: 0.65 #0.55 , 0.7
       always_send_full_costmap: True
+  global_costmap_client:
+    ros__parameters:
+      use_sim_time: False
+  global_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: False
 
 map_server:
   ros__parameters:
@@ -263,17 +271,57 @@ map_saver:
     occupied_thresh_default: 0.65
     map_subscribe_transient_local: False
 
+#planner_server:
+#  ros__parameters:
+#    expected_planner_frequency: 10.0 #20.0
+#    use_sim_time: False
+#    planner_plugins: ["GridBased"]
+#    GridBased:
+#      plugin: "nav2_navfn_planner/NavfnPlanner"
+#      tolerance: 0.5
+#      use_astar: false 
+#      allow_unknown: true
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 5.0 #20.0
-    use_sim_time: False
     planner_plugins: ["GridBased"]
-    GridBased:
-      plugin: "nav2_navfn_planner/NavfnPlanner"
-      tolerance: 0.5
-      use_astar: false 
-      allow_unknown: true
+    use_sim_time: True
 
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlannerHybrid"
+      downsample_costmap: false
+      downsampling_factor: 1
+      tolerance: 0.25
+      allow_unknown: false
+      max_iterations: 100000 #100000
+      max_on_approach_iterations: 10000
+      max_planning_time: 5.0              # max time in s for planner to plan, smooth
+      motion_model_for_search: "DUBIN"    # Hybrid-A* Dubin, Redds-Shepp
+      angle_quantization_bins: 72         # Number of angle bins for search
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_length: 3.0
+      analytic_expansion_max_cost: 200.0
+      analytic_expansion_max_cost_override: false #false
+      minimum_turning_radius: 0.8 #0.4 ,,1.0
+      reverse_penalty: 2.0
+      change_penalty: 0.0 
+      non_straight_penalty: 1.2
+      cost_penalty: 3.5 #2.0 로봇이 통로 중심으로 움직일지 결정하는 코스트 1.3~3.5이내
+      retrospective_penalty: 0.015
+      lookup_table_size: 20.0
+      cache_obstacle_heuristic: false
+      debug_visualizations: false
+      use_quadratic_cost_penalty: False
+      downsample_obstacle_heuristic: True
+      allow_primitive_interpolation: False
+      smooth_path: True
+
+      smoother:
+        max_iterations: 1000
+        w_smooth: 0.3
+        w_data: 0.2
+        tolerance: 1.0e-10
+        do_refinement: true
+        refinement_num: 2
 
 smoother_server:
   ros__parameters:
@@ -306,7 +354,7 @@ behavior_server:
     transform_tolerance: 0.1
     use_sim_time: False
     simulate_ahead_time: 2.0
-    max_rotational_vel: 0.5
+    max_rotational_vel: 0.4
     min_rotational_vel: 0.3
     rotational_acc_lim: 2.4
 
@@ -317,7 +365,7 @@ robot_state_publisher:
 waypoint_follower:
   ros__parameters:
     use_sim_time: False
-    loop_rate: 20 #20.0
+    loop_rate: 10 #20.0
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:
@@ -328,13 +376,13 @@ waypoint_follower:
 velocity_smoother:
   ros__parameters:
     use_sim_time: False
-    smoothing_frequency: 40.0 #20.0
+    smoothing_frequency: 20.0 #20.0
     scale_velocities: False
-    feedback: "OPEN_LOOP" #CLOSED_LOOP
-    max_velocity: [0.3, 0.0, 0.6]
-    min_velocity: [-0.3, 0.0, -0.6]
-    max_accel: [1.6, 0.0, 2.5]
-    max_decel: [-1.6, 0.0, -2.5]
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.6, 0.0, 0.7]
+    min_velocity: [-0.6, 0.0, -0.7]
+    max_accel: [1.6, 0.0, 3.2]
+    max_decel: [-1.6, 0.0, -3.2]
     odom_topic: "odom"
     odom_duration: 0.1
     deadband_velocity: [0.01, 0.0, 0.01]
@@ -348,3 +396,4 @@ lifecycle_manager:
     bond_timeout: 4.0
     attempt_respawn_reconnection: true
     bond_respawn_max_duration: 10.0
+
