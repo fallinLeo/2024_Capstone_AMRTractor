@@ -1,1 +1,0 @@
-/home/kim/ros2_ws/src/build/ssctractor/launch/robot_state_publisher.launch.py

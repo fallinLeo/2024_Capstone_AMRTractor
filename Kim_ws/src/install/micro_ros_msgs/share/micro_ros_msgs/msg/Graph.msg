@@ -1,1 +1,0 @@
-/home/kim/ros2_ws/src/uros/micro_ros_msgs/msg/Graph.msg
