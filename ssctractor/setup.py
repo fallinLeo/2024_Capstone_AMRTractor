@@ -7,7 +7,9 @@ launch_directory = os.path.join('share', package_name, 'launch')
 
 launch_files = [
     'launch/slam.launch.py',
-    'launch/robot_state_publisher.launch.py'
+    'launch/robot_state_publisher.launch.py',
+    'launch/tf_multi_launch.launch.py',
+    'launch/sensor_motor.launch.py',
 ]
 
 urdf_directory = os.path.join('share', package_name, 'urdf')
@@ -38,8 +40,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-        	'odom_publisher = ssctractor.odom_publisher:main',
+        	'odom_publisher = ssctractor.odom_publisher_0912:main',
         	'path_subscriber = ssctractor.topic_subscriber_path:main',
+        	'lidar_preprocessing = ssctractor.lidar_filtering:main',
         ],
     },
 )
