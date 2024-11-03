@@ -130,7 +130,7 @@
     </visual>
   </link>
   <joint name="camera_joint" type="fixed">
-    <origin rpy="0 -1.5705 0" xyz="0.0 0 0.1"/>
+    <origin rpy="0 0 3.141592" xyz="0.0 0 0.1"/>
     <child link="camera"/>
     <parent link="base_link"/>
     <axis rpy="0 0 0" xyz="0 1 0"/>
