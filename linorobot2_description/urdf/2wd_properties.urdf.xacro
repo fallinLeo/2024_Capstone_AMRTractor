@@ -8,7 +8,7 @@
   <xacro:property name="trailer_length" value="0.9" />
   <xacro:property name="trailer_width" value="0.6" />
   <xacro:property name="trailer_height" value="0.2" />
-  <xacro:property name="trailer_mass" value="27" />
+  <xacro:property name="trailer_mass" value="50" />
 
 <!--  <xacro:property name="base_length1" value="0.492" />
   <xacro:property name="base_width1" value="0.447" />
