@@ -1,0 +1,9 @@
+source;share/ssctractor/hook/pythonpath.ps1
+source;share/ssctractor/hook/pythonpath.dsv
+source;share/ssctractor/hook/pythonpath.sh
+source;share/ssctractor/hook/ament_prefix_path.ps1
+source;share/ssctractor/hook/ament_prefix_path.dsv
+source;share/ssctractor/hook/ament_prefix_path.sh
+source;../../build/ssctractor/share/ssctractor/hook/pythonpath_develop.ps1
+source;../../build/ssctractor/share/ssctractor/hook/pythonpath_develop.dsv
+source;../../build/ssctractor/share/ssctractor/hook/pythonpath_develop.sh

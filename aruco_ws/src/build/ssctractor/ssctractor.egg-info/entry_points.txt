@@ -1,0 +1,3 @@
+[console_scripts]
+odom_publisher = ssctractor.odom_publisher:main
+path_subscriber = ssctractor.topic_subscriber_path:main

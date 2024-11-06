@@ -55,6 +55,11 @@ class PathFollower(Node):
         self.current_pose = PoseStamped()
         self.current_pose.pose.position.x = 0.0
         self.current_pose.pose.position.y = 0.0
+
+        #follow_path_go_goal
+        self.cnt = 0
+        self.to_goal_flag = False
+        self.doc_succeed = False
     
     def odom_callback(self, msg):
         # if self.doc_flag ==False : return
@@ -109,8 +114,14 @@ class PathFollower(Node):
         self.now_pose_pub.publish(self.current_pose)
 
         if self.path_created:
-            # self.follow_path_to_middle(self.waypoints)
-            pass
+            if self.to_goal_flag == False :
+                self.follow_path_to_middle(self.waypoints)
+                # self.get_logger().info('plan A is activated')
+            else :
+                if self.doc_succeed == False:
+                    self.follow_path_to_goal(self.goal_yaw)
+                    # self.get_logger().info('plan B is activated')
+
  
 
     def callback(self, goal_pose):
@@ -123,23 +134,25 @@ class PathFollower(Node):
         goal_pose.pose.orientation.x * goal_pose.pose.orientation.y + goal_pose.pose.orientation.w * goal_pose.pose.orientation.z,
         0.5 - goal_pose.pose.orientation.y * goal_pose.pose.orientation.y - goal_pose.pose.orientation.z * goal_pose.pose.orientation.z
         )
+        # print(f"goal_yaw : {self.goal_yaw}")
+        
 
         # 목표 지점까지의 거리 계산
         self.distance_to_goal = math.sqrt((self.goal_x) ** 2 + (self.goal_y) ** 2)
 
         #경로생성만 보려고 수정했었음
-        self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
-        # if not self.path_created:
-        #     self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_x, self.goal_y,self.goal_yaw)          
-        #     self.path_created = True  # 경로 생성되면
+        # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
+        if not self.path_created:
+            self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
+            # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)        
+            self.path_created = True  # 경로 생성되면
     
     def generate_path(self, start_x, start_y, goal_x, goal_y, goal_yaw):
         """목표 위치와 목표 각도에서 미분계수가 goal_yaw가 되도록 경로 생성"""
         goal_yaw = self.normalize_goal_yaw(goal_yaw)
-        print(f"goal_yaw : {goal_yaw}")
         
         # x축을 기준으로 경로 설정
-        x_points = np.linspace(start_y, goal_y, num=10)
+        x_points = np.linspace(start_y,goal_y, num=20) #위에서 목표.시작위치 경로생성 바꿔기 때문에 여기 고려.
 
         # 다항식의 4개의 조건을 정의합니다.
         # 1. f(start_y) = start_x
@@ -184,6 +197,8 @@ class PathFollower(Node):
 
         # 경로 퍼블리시
         self.path_pub.publish(path_msg)
+        # print(len(waypoints))
+
 
         return waypoints
     
@@ -213,10 +228,16 @@ class PathFollower(Node):
         lookahead_marker.point.y = current_y - self.lookahead_distance * math.sin(self.yaw)
         lookahead_marker.point.z = 0.0  # z 좌표는 0으로 설정
 
-        goal_to_current = math.sqrt((current_x -self.goal_x) ** 2 + 
-                                            (current_y - self.goal_y) ** 2)
+        dist_to_goal = math.sqrt((self.goal_x) ** 2 + 
+                                            (self.goal_y) ** 2)
+        
+        #goal함수로 탈출 코드
+        if self.current_index >= len(waypoints)-3 and dist_to_goal <= 0.5:
+            self.to_goal_flag = True
+            self.get_logger().info(f'FOLLOW_TO_GOAL_IS_ACTIVATED.. dist:{dist_to_goal}')
+            return
 
-        ##정지조건부분
+        # 정지조건부분
         # if self.distance_to_goal < 0.2 or goal_to_current < 0.2:
         #     cmd.linear.x = 0.0
         #     cmd.angular.z = 0.0
@@ -236,7 +257,7 @@ class PathFollower(Node):
         for i in range(self.current_index, len(waypoints)):
             waypoint_to_current = math.sqrt((waypoints[i].x - lookahead_marker.point.x) ** 2 + 
                                             (waypoints[i].y - lookahead_marker.point.y) ** 2)
-            # self.get_logger().info(f'current_idx_x: {waypoints[i].x} & lookahead_pt_x :{lookahead_marker.point.x}')
+            # self.get_logger().info(f'current_idx: {waypoints[i].x} & lookahead_pt_x :{lookahead_marker.point.x}')
             # Lookahead point보다 뒤에 있지 않도록 보정
             if waypoint_to_current < self.lookahead_distance or waypoints[i].x > lookahead_marker.point.x:
                 # 인덱스가 범위를 넘지 않도록 체크
@@ -244,11 +265,12 @@ class PathFollower(Node):
                     self.current_index = i + 1
                 else:
                     self.current_index = i  # 마지막 인덱스에 도달하면 그 인덱스로 유지
-                break
+
+        
 
         closest_waypoint_aft = waypoints[self.current_index]
-        self.get_logger().info(f'current_index: {self.current_index}')
-        self.get_logger().info(f'goal_to_current: {goal_to_current}')
+        self.get_logger().info(f'current_index: {self.current_index} & closet_waypoint : {closest_waypoint_aft}')
+        # self.get_logger().info(f'goal_to_current: {goal_to_current}')
         
 
     
@@ -264,7 +286,6 @@ class PathFollower(Node):
         self.closest_pub.publish(closest_marker)  # 퍼블리시 실행
         self.ld_marker.publish(lookahead_marker)
 
-        
 
         # PD 제어 적용
         error_x = closest_waypoint_aft.x - current_x
@@ -299,8 +320,64 @@ class PathFollower(Node):
 
         self.vel_pub.publish(cmd)
     
-    def follow_path_to_goal(self,waypoints):
-        pass
+
+    def follow_path_to_goal(self,goal_yaw):
+        cmd = Twist()
+        Kp = 0.05  # P 제어 계수
+        Kd = 0.07  # D 제어 계수
+
+        prev_error = -goal_yaw  # 초기 오차값
+
+        if abs(goal_yaw) <=2.97:
+            cmd.linear.x = 0.0
+
+            # 현재 goal_yaw가 목표 yaw (0.0)에서 얼마나 차이 나는지 계산
+            error = -goal_yaw
+            d_error = error - prev_error  # 이전 오차와 현재 오차의 차이 (D제어)
+
+            # PD 제어 계산
+            cmd.angular.z = Kp * error + Kd * d_error
+
+            # 각속도의 최대값을 제한
+            max_angular_speed = 0.04
+            cmd.angular.z = max(-max_angular_speed, min(max_angular_speed, cmd.angular.z))
+            
+
+            # 이전 오차 업데이트
+            prev_error = error
+            # self.cnt += 1
+            self.vel_pub.publish(cmd)
+            print(f"goal_yaw : {goal_yaw}")
+        else : # 목표 yaw에 도달하면 멈춤
+            cmd.angular.z = 0.0
+            cmd.linear.x = -0.07  # 일정한 선속도
+            self.vel_pub.publish(cmd)
+
+            # Base link 기준 (0, 0)에서 시작하므로 현재 위치는 항상 (0, 0)
+            current_x = self.current_pose.pose.position.x
+            current_y = self.current_pose.pose.position.y
+
+            goal_to_current = math.sqrt((current_x -self.goal_x) ** 2 + 
+                                                (current_y - self.goal_y) ** 2)
+            
+
+            #정지조건부분
+            if self.distance_to_goal < 0.19 or goal_to_current < 0.19:
+                cmd.linear.x = 0.0
+                cmd.angular.z = 0.0
+                self.vel_pub.publish(cmd)
+                
+                time.sleep(1)
+                grip_start = Int32()
+                grip_start.data = 1
+                self.pub_to_ard.publish(grip_start)
+                self.get_logger().info('Arrived at goal, stopping...')
+                self.doc_flag = False
+                self.path_created =False #이 노드 실행 x되게
+                self.doc_succeed = True
+                return
+
+        
 
 
     def normalize_angle(self, angle):

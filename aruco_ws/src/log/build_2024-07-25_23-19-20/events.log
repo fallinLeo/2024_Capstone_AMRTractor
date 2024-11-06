@@ -1,0 +1,60 @@
+[0.000000] (-) TimerEvent: {}
+[0.000380] (ssctractor) JobQueued: {'identifier': 'ssctractor', 'dependencies': OrderedDict()}
+[0.000405] (ssctractor) JobStarted: {'identifier': 'ssctractor'}
+[0.099905] (-) TimerEvent: {}
+[0.200169] (-) TimerEvent: {}
+[0.300401] (-) TimerEvent: {}
+[0.400628] (-) TimerEvent: {}
+[0.500865] (-) TimerEvent: {}
+[0.527293] (ssctractor) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', 'setup.py', 'develop', '--editable', '--build-directory', '/home/kim/ros2_ws/src/build/ssctractor/build', '--no-deps', 'symlink_data'], 'cwd': '/home/kim/ros2_ws/src/build/ssctractor', 'env': {'LESSOPEN': '| /usr/bin/lesspipe %s', 'LANGUAGE': 'en', 'USER': 'kim', 'LC_TIME': 'ko_KR.UTF-8', 'XDG_SESSION_TYPE': 'wayland', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib', 'HOME': '/home/kim', 'OLDPWD': '/home/kim', 'DESKTOP_SESSION': 'ubuntu', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'LC_MONETARY': 'ko_KR.UTF-8', 'MANAGERPID': '1616', 'SYSTEMD_EXEC_PID': '1968', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLORTERM': 'truecolor', 'TERMINATOR_DBUS_NAME': 'net.tenshu.Terminator25ef4b219e3b005583550f2b0f9f990c3', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '6535', 'IM_CONFIG_PHASE': '1', 'WAYLAND_DISPLAY': 'wayland-0', 'ROS_DISTRO': 'humble', 'LOGNAME': 'kim', 'JOURNAL_STREAM': '8:33219', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'USERNAME': 'kim', 'TERM': 'xterm-256color', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/opt/ros/humble/bin:/home/kim/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin', 'SESSION_MANAGER': 'local/kim:@/tmp/.ICE-unix/1772,unix/kim:/tmp/.ICE-unix/1772', 'INVOCATION_ID': '322b3f77c4f545aa94084598c1b8225d', 'PAPERSIZE': 'a4', 'XDG_MENU_PREFIX': 'gnome-', 'LC_ADDRESS': 'ko_KR.UTF-8', 'GNOME_SETUP_DISPLAY': ':1', 'XDG_RUNTIME_DIR': '/run/user/1000', 'DISPLAY': ':0', 'TERMINATOR_DBUS_PATH': '/net/tenshu/Terminator2', 'LANG': 'en_US.UTF-8', 'XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'IBUS_DISABLE_SNOOPER': '1', 'LC_TELEPHONE': 'ko_KR.UTF-8', 'XMODIFIERS': '@im=ibus', 'XDG_SESSION_DESKTOP': 'ubuntu', 'XAUTHORITY': '/run/user/1000/.mutter-Xwaylandauth.1RHHR2', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'SSH_AGENT_LAUNCHER': 'gnome-keyring', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'AMENT_PREFIX_PATH': '/opt/ros/humble', 'SHELL': '/bin/bash', 'LC_NAME': 'ko_KR.UTF-8', 'TERMINATOR_UUID': 'urn:uuid:949ba275-079b-4627-a09a-e87dd38ec23c', 'QT_ACCESSIBILITY': '1', 'GDMSESSION': 'ubuntu', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'LC_MEASUREMENT': 'ko_KR.UTF-8', 'LC_IDENTIFICATION': 'ko_KR.UTF-8', 'QT_IM_MODULE': 'ibus', 'PWD': '/home/kim/ros2_ws/src/build/ssctractor', 'LC_ALL': 'en_US.UTF-8', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu:/etc/xdg', 'XDG_DATA_DIRS': '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/kim/ros2_ws/src/build/ssctractor/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/kim/ros2_ws/src/install/ssctractor/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'LC_NUMERIC': 'ko_KR.UTF-8', 'LC_PAPER': 'ko_KR.UTF-8', 'COLCON': '1', 'VTE_VERSION': '6800'}, 'shell': False}
+[0.601031] (-) TimerEvent: {}
+[0.611872] (ssctractor) StderrLine: {'line': b'/home/kim/.local/lib/python3.10/site-packages/setuptools/dist.py:476: SetuptoolsDeprecationWarning: Invalid dash-separated options\n'}
+[0.611996] (ssctractor) StderrLine: {'line': b'!!\n'}
+[0.612039] (ssctractor) StderrLine: {'line': b'\n'}
+[0.612074] (ssctractor) StderrLine: {'line': b'        ********************************************************************************\n'}
+[0.612109] (ssctractor) StderrLine: {'line': b"        Usage of dash-separated 'script-dir' will not be supported in future\n"}
+[0.612144] (ssctractor) StderrLine: {'line': b"        versions. Please use the underscore name 'script_dir' instead.\n"}
+[0.612178] (ssctractor) StderrLine: {'line': b'\n'}
+[0.612210] (ssctractor) StderrLine: {'line': b'        By 2024-Sep-26, you need to update your project and remove deprecated calls\n'}
+[0.612244] (ssctractor) StderrLine: {'line': b'        or your builds will no longer be supported.\n'}
+[0.612276] (ssctractor) StderrLine: {'line': b'\n'}
+[0.612310] (ssctractor) StderrLine: {'line': b'        See https://setuptools.pypa.io/en/latest/userguide/declarative_config.html for details.\n'}
+[0.612344] (ssctractor) StderrLine: {'line': b'        ********************************************************************************\n'}
+[0.612377] (ssctractor) StderrLine: {'line': b'\n'}
+[0.612410] (ssctractor) StderrLine: {'line': b'!!\n'}
+[0.612449] (ssctractor) StderrLine: {'line': b'  opt = self.warn_dash_deprecation(opt, section)\n'}
+[0.701148] (-) TimerEvent: {}
+[0.731588] (ssctractor) StdoutLine: {'line': b'running develop\n'}
+[0.731786] (ssctractor) StderrLine: {'line': b'/home/kim/.local/lib/python3.10/site-packages/setuptools/command/develop.py:42: EasyInstallDeprecationWarning: easy_install command is deprecated.\n'}
+[0.731843] (ssctractor) StderrLine: {'line': b'!!\n'}
+[0.731884] (ssctractor) StderrLine: {'line': b'\n'}
+[0.731925] (ssctractor) StderrLine: {'line': b'        ********************************************************************************\n'}
+[0.731965] (ssctractor) StderrLine: {'line': b'        Please avoid running ``setup.py`` and ``easy_install``.\n'}
+[0.732004] (ssctractor) StderrLine: {'line': b'        Instead, use pypa/build, pypa/installer or other\n'}
+[0.732044] (ssctractor) StderrLine: {'line': b'        standards-based tools.\n'}
+[0.732080] (ssctractor) StderrLine: {'line': b'\n'}
+[0.732116] (ssctractor) StderrLine: {'line': b'        See https://github.com/pypa/setuptools/issues/917 for details.\n'}
+[0.732153] (ssctractor) StderrLine: {'line': b'        ********************************************************************************\n'}
+[0.732189] (ssctractor) StderrLine: {'line': b'\n'}
+[0.732225] (ssctractor) StderrLine: {'line': b'!!\n'}
+[0.732261] (ssctractor) StderrLine: {'line': b'  easy_install.initialize_options(self)\n'}
+[0.801257] (-) TimerEvent: {}
+[0.868981] (ssctractor) StdoutLine: {'line': b'running egg_info\n'}
+[0.878559] (ssctractor) StdoutLine: {'line': b'writing ssctractor.egg-info/PKG-INFO\n'}
+[0.879036] (ssctractor) StdoutLine: {'line': b'writing dependency_links to ssctractor.egg-info/dependency_links.txt\n'}
+[0.879148] (ssctractor) StdoutLine: {'line': b'writing entry points to ssctractor.egg-info/entry_points.txt\n'}
+[0.879212] (ssctractor) StdoutLine: {'line': b'writing requirements to ssctractor.egg-info/requires.txt\n'}
+[0.879279] (ssctractor) StdoutLine: {'line': b'writing top-level names to ssctractor.egg-info/top_level.txt\n'}
+[0.899523] (ssctractor) StdoutLine: {'line': b"reading manifest file 'ssctractor.egg-info/SOURCES.txt'\n"}
+[0.900014] (ssctractor) StdoutLine: {'line': b"writing manifest file 'ssctractor.egg-info/SOURCES.txt'\n"}
+[0.901305] (-) TimerEvent: {}
+[0.910660] (ssctractor) StdoutLine: {'line': b'running build_ext\n'}
+[0.910768] (ssctractor) StdoutLine: {'line': b'Creating /home/kim/ros2_ws/src/install/ssctractor/lib/python3.10/site-packages/ssctractor.egg-link (link to .)\n'}
+[0.911267] (ssctractor) StdoutLine: {'line': b'Installing odom_publisher script to /home/kim/ros2_ws/src/install/ssctractor/lib/ssctractor\n'}
+[0.911402] (ssctractor) StdoutLine: {'line': b'Installing path_subscriber script to /home/kim/ros2_ws/src/install/ssctractor/lib/ssctractor\n'}
+[0.911552] (ssctractor) StdoutLine: {'line': b'\n'}
+[0.911591] (ssctractor) StdoutLine: {'line': b'Installed /home/kim/ros2_ws/src/build/ssctractor\n'}
+[0.911650] (ssctractor) StdoutLine: {'line': b'running symlink_data\n'}
+[0.932167] (ssctractor) CommandEnded: {'returncode': 0}
+[0.938664] (ssctractor) JobEnded: {'identifier': 'ssctractor', 'rc': 0}
+[0.939041] (-) EventReactorShutdown: {}
