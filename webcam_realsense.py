@@ -10,7 +10,6 @@ import numpy as np
 from geometry_msgs.msg import TransformStamped
 import transforms3d
 import tf2_ros
-import math
 import base64
 
 class DualArucoDetector(Node):
@@ -19,19 +18,15 @@ class DualArucoDetector(Node):
         self.publisher_realsense = self.create_publisher(Image, 'realsense_image', 10)
         self.pose_publisher_realsense = self.create_publisher(PoseStamped, 'pose_realsense', 10)
         self.theta_publisher = self.create_publisher(Float32, 'aruco_theta', 10)
-        self.charge_flag = self.create_subscription(Bool,'charge_start',self.charge_flag_callback,10)
-        self.chag_flag = False
+        self.charge_flag_subscription = self.create_subscription(Bool, 'charge_start', self.charge_flag_callback, 10)
+        self.chag_flag = False  # charge_start 메시지의 상태 저장
 
         self.publisher_webcam = self.create_publisher(Image, 'webcam_image', 10)
         self.pose_publisher_webcam = self.create_publisher(Pose, 'pose_webcam', 10)
         self.image_pub_webcam = self.create_publisher(String, 'webcam/image_processed', 10)
 
         self.set_id = 0
-        self.subscription = self.create_subscription(
-            Int32,
-            'set_id',
-            self.listener_callback,
-            10)
+        self.subscription = self.create_subscription(Int32, 'set_id', self.listener_callback, 10)
 
         self.bridge = CvBridge()
         
@@ -75,6 +70,15 @@ class DualArucoDetector(Node):
 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
         self.timer = self.create_timer(0.033, self.timer_callback)
+
+        # 창 상태 플래그
+        self.realsense_window_open = False
+        self.webcam_window_open = False
+
+    def charge_flag_callback(self, msg):
+        """charge_start 토픽에서 메시지를 받아 RealSense 카메라 사용 여부를 결정합니다."""
+        self.chag_flag = msg.data  # charge_start 메시지 상태를 저장
+        self.get_logger().info(f'Received charge_start: {self.chag_flag}')
 
     def listener_callback(self, msg):
         self.set_id = msg.data
@@ -133,30 +137,51 @@ class DualArucoDetector(Node):
                             self.pose_publisher_webcam.publish(pose_simple_msg)
 
     def timer_callback(self):
-        # RealSense 카메라 처리
-        frames = self.pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        if color_frame:
-            img_realsense = np.asanyarray(color_frame.get_data())
-            self.process_aruco(img_realsense, self.cmtx_realsense, self.dist_realsense, 'realsense_camera')
-            self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(img_realsense, "bgr8"))
-            cv2.imshow('RealSense Aruco Detector', img_realsense)
+        # charge_start 값에 따라 RealSense 카메라 처리 여부 결정
+        if not self.chag_flag:  # charge_start가 False일 때만 RealSense 사용
+            frames = self.pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            if color_frame:
+                img_realsense = np.asanyarray(color_frame.get_data())
+                self.process_aruco(img_realsense, self.cmtx_realsense, self.dist_realsense, 'realsense_camera')
+                self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(img_realsense, "bgr8"))
+
+                # RealSense 창을 한 번만 열고 닫기
+                if not self.realsense_window_open:
+                    cv2.namedWindow('RealSense Aruco Detector', cv2.WINDOW_NORMAL)
+                    self.realsense_window_open = True
+                cv2.imshow('RealSense Aruco Detector', img_realsense)
+        else:
+            # RealSense 창 닫기
+            if self.realsense_window_open:
+                cv2.destroyWindow('RealSense Aruco Detector')
+                self.realsense_window_open = False
 
         # 웹캠 처리
-        ret, img_webcam = self.cap.read()
-        if ret:
-            self.process_aruco(img_webcam, self.cmtx_webcam, self.dist_webcam, 'webcam')
-            self.publisher_webcam.publish(self.bridge.cv2_to_imgmsg(img_webcam, "bgr8"))
+        if self.chag_flag:  # charge_start가 True일 때만 웹캠 사용
+            ret, img_webcam = self.cap.read()
+            if ret:
+                self.process_aruco(img_webcam, self.cmtx_webcam, self.dist_webcam, 'webcam')
+                self.publisher_webcam.publish(self.bridge.cv2_to_imgmsg(img_webcam, "bgr8"))
 
-            _, jpeg_image = cv2.imencode('.jpg', img_webcam)
-            base64_image = base64.b64encode(jpeg_image.tobytes()).decode('utf-8')
-            image_msg = String(data=base64_image)
-            self.image_pub_webcam.publish(image_msg)
-            
-            cv2.imshow('Webcam Aruco Detector', img_webcam)
-        cv2.imshow('RealSense Aruco Detector', img_realsense)
-        cv2.imshow('Webcam Aruco Detector', img_webcam)
+                # 웹캠 창을 한 번만 열고 닫기
+                if not self.webcam_window_open:
+                    cv2.namedWindow('Webcam Aruco Detector', cv2.WINDOW_NORMAL)
+                    self.webcam_window_open = True
+                cv2.imshow('Webcam Aruco Detector', img_webcam)
+                
+                # 이미지를 JPEG로 인코딩하여 String 메시지로 퍼블리시
+                _, jpeg_image = cv2.imencode('.jpg', img_webcam)
+                base64_image = base64.b64encode(jpeg_image.tobytes()).decode('utf-8')
+                image_msg = String(data=base64_image)
+                self.image_pub_webcam.publish(image_msg)
+        else:
+            # 웹캠 창 닫기
+            if self.webcam_window_open:
+                cv2.destroyWindow('Webcam Aruco Detector')
+                self.webcam_window_open = False
 
+        # 'q' 키를 누르면 종료
         if cv2.waitKey(1) & 0xFF == ord('q'):
             rclpy.shutdown()
 
