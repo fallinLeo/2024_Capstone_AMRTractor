@@ -15,17 +15,16 @@ import base64
 class DualArucoDetector(Node):
     def __init__(self):
         super().__init__('dual_aruco_detector')
-        self.publisher_realsense = self.create_publisher(Image, 'realsense_image', 10)
-        self.pose_publisher_realsense = self.create_publisher(PoseStamped, 'pose_realsense', 10)
+        self.publisher_realsense = self.create_publisher(Image, 'aruco_image', 10)
+        self.pose_publisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.theta_publisher = self.create_publisher(Float32, 'aruco_theta', 10)
         self.charge_flag_subscription = self.create_subscription(Bool, 'charge_start', self.charge_flag_callback, 10)
         self.chag_flag = False  # charge_start 메시지의 상태 저장
 
-        self.publisher_webcam = self.create_publisher(Image, 'webcam_image', 10)
-        self.pose_publisher_webcam = self.create_publisher(Pose, 'pose_webcam', 10)
+        self.publisher_webcam = self.create_publisher(Image, 'aruco_image', 10)
         self.image_pub_webcam = self.create_publisher(String, 'webcam/image_processed', 10)
 
-        self.set_id = 0
+        self.set_id = 3
         self.subscription = self.create_subscription(Int32, 'set_id', self.listener_callback, 10)
 
         self.bridge = CvBridge()
@@ -78,11 +77,10 @@ class DualArucoDetector(Node):
     def charge_flag_callback(self, msg):
         """charge_start 토픽에서 메시지를 받아 RealSense 카메라 사용 여부를 결정합니다."""
         self.chag_flag = msg.data  # charge_start 메시지 상태를 저장
-        self.get_logger().info(f'Received charge_start: {self.chag_flag}')
 
     def listener_callback(self, msg):
         self.set_id = msg.data
-        self.get_logger().info(f'Received set_id: {self.set_id}')
+        # self.get_logger().info(f'Received set_id: {self.set_id}')
 
     def process_aruco(self, img, cmtx, dist, frame_id):
         # ArUco 마커 검출
@@ -128,13 +126,9 @@ class DualArucoDetector(Node):
                         cv2.putText(img, f'ID: {marker_id[0]}', (int(corner[0][0]), int(corner[0][1] - 10)),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA)
 
-                        if frame_id == 'realsense_camera':
-                            self.pose_publisher_realsense.publish(pose_msg)
-                        else:
-                            pose_simple_msg = Pose(
-                                position=pose_msg.pose.position,
-                                orientation=pose_msg.pose.orientation)
-                            self.pose_publisher_webcam.publish(pose_simple_msg)
+
+                        self.pose_publisher.publish(pose_msg)
+
 
     def timer_callback(self):
         # charge_start 값에 따라 RealSense 카메라 처리 여부 결정
@@ -143,7 +137,7 @@ class DualArucoDetector(Node):
             color_frame = frames.get_color_frame()
             if color_frame:
                 img_realsense = np.asanyarray(color_frame.get_data())
-                self.process_aruco(img_realsense, self.cmtx_realsense, self.dist_realsense, 'realsense_camera')
+                self.process_aruco(img_realsense, self.cmtx_realsense, self.dist_realsense, 'camera')
                 self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(img_realsense, "bgr8"))
 
                 # RealSense 창을 한 번만 열고 닫기
@@ -161,7 +155,7 @@ class DualArucoDetector(Node):
         if self.chag_flag:  # charge_start가 True일 때만 웹캠 사용
             ret, img_webcam = self.cap.read()
             if ret:
-                self.process_aruco(img_webcam, self.cmtx_webcam, self.dist_webcam, 'webcam')
+                self.process_aruco(img_webcam, self.cmtx_webcam, self.dist_webcam, 'base_link')
                 self.publisher_webcam.publish(self.bridge.cv2_to_imgmsg(img_webcam, "bgr8"))
 
                 # 웹캠 창을 한 번만 열고 닫기
