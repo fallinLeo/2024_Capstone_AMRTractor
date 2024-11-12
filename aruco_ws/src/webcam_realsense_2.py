@@ -11,6 +11,13 @@ from geometry_msgs.msg import TransformStamped
 import transforms3d
 import tf2_ros
 import base64
+import math
+
+angle = math.radians(90)  # 90도를 라디안으로 변환
+qx_rot = 0
+qy_rot = math.sin(angle/2)
+qz_rot = 0
+qw_rot = math.cos(angle/2)
 
 class DualArucoDetector(Node):
     def __init__(self):
@@ -19,7 +26,7 @@ class DualArucoDetector(Node):
         self.pose_publisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.theta_publisher = self.create_publisher(Float32, 'aruco_theta', 10)
         self.charge_flag_subscription = self.create_subscription(Bool, 'charge_start', self.charge_flag_callback, 10)
-        self.chag_flag = False  # charge_start 메시지의 상태 저장
+        self.chag_flag = True # charge_start 메시지의 상태 저장
 
         self.publisher_webcam = self.create_publisher(Image, 'aruco_image', 10)
         self.image_pub_webcam = self.create_publisher(String, 'webcam/image_processed', 10)
@@ -88,46 +95,107 @@ class DualArucoDetector(Node):
         
         if ids is not None:
             for i, marker_id in enumerate(ids):
-                if marker_id[0] == self.set_id:
-                    corner = corners[i].reshape((4, 2))
-                    ret, rvec, tvec = cv2.solvePnP(self.marker_3d_edges, corner, cmtx, dist)
-                    if ret:
-                        rotation_matrix = cv2.Rodrigues(rvec)[0]
-                        quat = transforms3d.quaternions.mat2quat(rotation_matrix)
-                        
-                        # Pose 메시지 생성 및 퍼블리시
-                        pose_msg = PoseStamped()
-                        pose_msg.header.frame_id = frame_id
-                        pose_msg.header.stamp = self.get_clock().now().to_msg()
-                        pose_msg.pose.position.x = tvec[0][0] / 1000.0
-                        pose_msg.pose.position.y = tvec[1][0] / 1000.0
-                        pose_msg.pose.position.z = tvec[2][0] / 1000.0
-                        pose_msg.pose.orientation.x = quat[1]
-                        pose_msg.pose.orientation.y = quat[2]
-                        pose_msg.pose.orientation.z = quat[3]
-                        pose_msg.pose.orientation.w = quat[0]
-                        
-                        # tf2 브로드캐스트
-                        t = TransformStamped()
-                        t.header.stamp = self.get_clock().now().to_msg()
-                        t.header.frame_id = frame_id
-                        t.child_frame_id = f'aruco_marker_{marker_id[0]}'
-                        t.transform.translation.x = tvec[0][0] / 1000.0
-                        t.transform.translation.y = tvec[1][0] / 1000.0
-                        t.transform.translation.z = tvec[2][0] / 1000.0
-                        t.transform.rotation.x = quat[1]
-                        t.transform.rotation.y = quat[2]
-                        t.transform.rotation.z = quat[3]
-                        t.transform.rotation.w = quat[0]
-
-                        self.tf_broadcaster.sendTransform(t)
-
-                        cv2.drawFrameAxes(img, cmtx, dist, rvec, tvec, self.marker_size / 2)
-                        cv2.putText(img, f'ID: {marker_id[0]}', (int(corner[0][0]), int(corner[0][1] - 10)),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA)
+                if frame_id == "camera":
+                    if marker_id[0] == self.set_id:
+                        corner = corners[i].reshape((4, 2))
+                        ret, rvec, tvec = cv2.solvePnP(self.marker_3d_edges, corner, cmtx, dist)
+                        if ret:
+                            Ry_90 = np.array([[0, 0, 1],   
+                                                [0, 1, 0],
+                                            [-1, 0, 0]])
+                            Rx_90 = np.array([[1, 0, 0],   
+                                    [0, 0, 1],
+                                    [0, -1, 0]])
+                            rotation_matrix, _ = cv2.Rodrigues(rvec)
+                            rotation_matrix = Rx_90 @ (Ry_90 @ rotation_matrix)
+                            rvec, _ = cv2.Rodrigues(rotation_matrix)
+                                
+                            tvec = Rx_90 @ (Ry_90 @ tvec)
+                                
+                            theta = math.atan2(rotation_matrix[1,0], rotation_matrix[0,0])
+                            theta_msg = Float32()
+                            theta_msg.data = theta
+                            self.theta_publisher.publish(theta_msg)
 
 
-                        self.pose_publisher.publish(pose_msg)
+                            quat = transforms3d.quaternions.mat2quat(rotation_matrix)
+                            tvec[2][0] =0
+                            qx, qy,qz,qw = quat[0], quat[1], quat[2], quat[3]
+                            pose_msg = PoseStamped()  # PoseStamped로 변경하여 헤더 포함
+                            pose_msg.header.frame_id = 'camera'  # 헤더 프레임 설정
+                            pose_msg.header.stamp = self.get_clock().now().to_msg()  # 타임스탬프 설정
+
+                            pose_msg.pose.position.x = tvec[0][0] / 1000.0
+                            pose_msg.pose.position.y = tvec[1][0] / 1000.0
+                            pose_msg.pose.position.z = tvec[2][0] / 1000.0
+                            pose_msg.pose.orientation.w = qw * qw_rot - qx * qx_rot - qy * qy_rot - qz * qz_rot
+                            pose_msg.pose.orientation.x = qx * qw_rot + qw * qx_rot + qy * qz_rot - qz * qy_rot
+                            pose_msg.pose.orientation.y = qy * qw_rot + qw * qy_rot + qz * qx_rot - qx * qz_rot
+                            pose_msg.pose.orientation.z = qz * qw_rot + qw * qz_rot + qx * qy_rot - qy * qx_rot
+                            
+                            # tf2 브로드캐스트
+                            t = TransformStamped()
+                            t.header.stamp = self.get_clock().now().to_msg()
+                            t.header.frame_id = frame_id
+                            t.child_frame_id = f'aruco_marker_{marker_id[0]}'
+                            t.transform.translation.x = tvec[0][0] / 1000.0
+                            t.transform.translation.y = tvec[1][0] / 1000.0
+                            t.transform.translation.z = tvec[2][0] / 1000.0
+                            t.transform.rotation.x = quat[1]
+                            t.transform.rotation.y = quat[2]
+                            t.transform.rotation.z = quat[3]
+                            t.transform.rotation.w = quat[0]
+
+                            self.tf_broadcaster.sendTransform(t)
+
+                            cv2.drawFrameAxes(img, cmtx, dist, rvec, tvec, self.marker_size / 2)
+                            cv2.putText(img, f'ID: {marker_id[0]}', (int(corner[0][0]), int(corner[0][1] - 10)),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA)
+
+
+                            self.pose_publisher.publish(pose_msg)
+                if frame_id == "base_link":
+                    if marker_id[0] == self.set_id:
+                        corner = corners[i].reshape((4, 2))
+                        ret, rvec, tvec = cv2.solvePnP(self.marker_3d_edges, corner, cmtx, dist)
+                        if ret:
+                            rotation_matrix = cv2.Rodrigues(rvec)[0]
+                            quat = transforms3d.quaternions.mat2quat(rotation_matrix)
+                            tvec[2][0] =0 #0 fix
+
+                            # Pose 메시지 생성 및 퍼블리시
+                            pose_msg = PoseStamped()
+                            pose_msg.header.frame_id = frame_id
+                            pose_msg.header.stamp = self.get_clock().now().to_msg()
+                            pose_msg.pose.position.x = tvec[0][0] / 1000.0
+                            pose_msg.pose.position.y = tvec[1][0] / 1000.0
+                            pose_msg.pose.position.z = tvec[2][0] / 1000.0
+                            pose_msg.pose.orientation.x = quat[1]
+                            pose_msg.pose.orientation.y = quat[2]
+                            pose_msg.pose.orientation.z = quat[3]
+                            pose_msg.pose.orientation.w = quat[0]
+                                
+                            # tf2 브로드캐스트
+                            t = TransformStamped()
+                            t.header.stamp = self.get_clock().now().to_msg()
+                            t.header.frame_id = 'base_link'
+                            t.child_frame_id = f'aruco_marker_{marker_id[0]}'
+                            t.transform.translation.x = tvec[0][0] / 1000.0
+                            t.transform.translation.y = tvec[1][0] / 1000.0
+                            t.transform.translation.z = tvec[2][0] / 1000.0
+                            t.transform.rotation.x = quat[1]
+                            t.transform.rotation.y = quat[2]
+                            t.transform.rotation.z = quat[3]
+                            t.transform.rotation.w = quat[0]
+
+                            self.tf_broadcaster.sendTransform(t)
+
+                            cv2.drawFrameAxes(img, cmtx, dist, rvec, tvec, self.marker_size / 2)
+                            cv2.putText(img, f'ID: {marker_id[0]}', (int(corner[0][0]), int(corner[0][1] - 10)),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2, cv2.LINE_AA)
+
+
+                            self.pose_publisher.publish(pose_msg)
 
 
     def timer_callback(self):
