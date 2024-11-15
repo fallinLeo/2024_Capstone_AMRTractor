@@ -56,14 +56,13 @@ class PathFollower(Node):
         self.current_pose.pose.position.y = 0.0
 
         #follow_path_go_goal
-        self.cnt = 0
         self.to_goal_flag = False
         self.doc_succeed = False
 
         #정면 차징 도킹 파라미터
-        self.charge_flag = self.create_subscription(Bool,'charge_start',self.charge_flag_callback,10)
-        self.chag_flag = False
-        self.forward_pa = 1
+        # self.charge_flag = self.create_subscription(Bool,'charge_start',self.charge_flag_callback,10)
+        # self.chag_flag = False
+        # self.forward_pa = 1
     
     def odom_callback(self, msg):
         if self.doc_flag ==False : return
@@ -90,10 +89,10 @@ class PathFollower(Node):
     def docking_flag_callback(self,msg):
         self.doc_flag = msg.data
     
-    def charge_flag_callback(self,msg):
-        self.chag_flag = msg.data
-        if self.chag_flag ==True :
-            self.forward_pa = -1 #리버스
+    # def charge_flag_callback(self,msg):
+    #     self.chag_flag = msg.data
+    #     if self.chag_flag ==True :
+    #         self.forward_pa = -1 #리버스
 
 
     def timer_callback(self):
@@ -197,8 +196,8 @@ class PathFollower(Node):
         for i in range(len(x_points)):
             pose = PoseStamped()
             pose.header = path_msg.header
-            pose.pose.position.x = -y_points[i] * self.forward_pa # x축 값 설정
-            pose.pose.position.y = -x_points[i] * self.forward_pa # y축 기준으로 경로 설정
+            pose.pose.position.x = -y_points[i] # x축 값 설정  * self.forward_pa
+            pose.pose.position.y = -x_points[i]# y축 기준으로 경로 설정  * self.forward_pa 
             pose.pose.position.z = 0.0
             path_msg.poses.append(pose)
             waypoints.append(pose.pose.position)  # 경로 저장
@@ -321,7 +320,7 @@ class PathFollower(Node):
         self.prev_error = error_heading
 
         # 속도 명령 생성
-        cmd.linear.x = -0.1 * self.forward_pa   # 일정한 선속도
+        cmd.linear.x = -0.1   # 일정한 선속도  * self.forward_pa
         cmd.angular.z = angular_output  # PD 제어기 각속도 출력
 
         self.vel_pub.publish(cmd)
@@ -351,12 +350,11 @@ class PathFollower(Node):
 
             # 이전 오차 업데이트
             prev_error = error
-            # self.cnt += 1
             self.vel_pub.publish(cmd)
             print(f"goal_yaw : {goal_yaw}")
         else : # 목표 yaw에 도달하면 멈춤
             cmd.angular.z = 0.0
-            cmd.linear.x = -0.07 * self.forward_pa  # 일정한 선속도
+            cmd.linear.x = -0.07  # 일정한 선속도  * self.forward_pa
             self.vel_pub.publish(cmd)
 
             # Base link 기준 (0, 0)에서 시작하므로 현재 위치는 항상 (0, 0)

@@ -65,6 +65,7 @@ class PathFollower(Node):
         self.charge_flag = self.create_subscription(Bool,'charge_start',self.charge_flag_callback,10)
         self.chag_flag = False
         self.forward_pa = 1
+
     
     def odom_callback(self, msg):
         # if self.doc_flag ==False : return
@@ -152,8 +153,8 @@ class PathFollower(Node):
         #경로생성만 보려고 수정했었음
         # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
         if not self.path_created:
-            self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
-            # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)        
+            # self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
+            self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_yaw)        
             self.path_created = True  # 경로 생성되면
     
     def generate_path(self, start_x, start_y, goal_x, goal_y, goal_yaw):
@@ -204,16 +205,14 @@ class PathFollower(Node):
             path_msg.poses.append(pose)
             waypoints.append(pose.pose.position)  # 경로 저장
 
+        waypoints = waypoints[::-1] ###
+
         # 경로 퍼블리시
         self.path_pub.publish(path_msg)
-        # print(len(waypoints))
 
 
         return waypoints
     
-    
-
-
 
     def follow_path_to_middle(self, waypoints):
         """
@@ -222,6 +221,8 @@ class PathFollower(Node):
         
         if self.current_index >= len(waypoints):
             return
+
+
 
         cmd = Twist()
 
@@ -245,21 +246,7 @@ class PathFollower(Node):
             self.to_goal_flag = True
             self.get_logger().info(f'FOLLOW_TO_GOAL_IS_ACTIVATED.. dist:{dist_to_goal}')
             return
-
-        # 정지조건부분
-        # if self.distance_to_goal < 0.2 or goal_to_current < 0.2:
-        #     cmd.linear.x = 0.0
-        #     cmd.angular.z = 0.0
-        #     self.vel_pub.publish(cmd)
-            
-        #     time.sleep(1)
-        #     grip_start = Int32()
-        #     grip_start.data = 1
-        #     self.pub_to_ard.publish(grip_start)
-        #     self.get_logger().info('Arrived at goal, stopping...')
-        #     self.doc_flag = False
-        #     self.path_created =False #이 노드 실행 x되게
-        #     return
+        
         
 
         # 가장 가까운 waypoints를 찾는 로직
@@ -275,7 +262,8 @@ class PathFollower(Node):
                 else:
                     self.current_index = i  # 마지막 인덱스에 도달하면 그 인덱스로 유지
 
-        
+       
+       
 
         closest_waypoint_aft = waypoints[self.current_index]
         self.get_logger().info(f'current_index: {self.current_index} & closet_waypoint : {closest_waypoint_aft}')
