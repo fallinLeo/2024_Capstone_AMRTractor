@@ -4,6 +4,7 @@ from nav_msgs.msg import Path
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Int32, Bool
+from math import atan2
 import math
 from geometry_msgs.msg import PoseStamped, PointStamped
 from nav_msgs.msg import Odometry
@@ -150,8 +151,8 @@ class PathFollower(Node):
         #경로생성만 보려고 수정했었음
         # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
         if not self.path_created:
-            self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
-            # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)        
+            # self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
+            self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_yaw)        
             self.path_created = True  # 경로 생성되면
     
     def generate_path(self, start_x, start_y, goal_x, goal_y, goal_yaw):
@@ -202,6 +203,9 @@ class PathFollower(Node):
             path_msg.poses.append(pose)
             waypoints.append(pose.pose.position)  # 경로 저장
 
+
+        waypoints = waypoints[::-1] ###
+
         # 경로 퍼블리시
         self.path_pub.publish(path_msg)
         # print(len(waypoints))
@@ -237,7 +241,7 @@ class PathFollower(Node):
                                             (self.goal_y) ** 2)
         
         #goal함수로 탈출 코드
-        if self.current_index >= len(waypoints)-2 or dist_to_goal <= 0.4 or self.current_index==len(waypoints):
+        if self.current_index >= len(waypoints)-2 or dist_to_goal <= 0.5 or self.current_index==len(waypoints): #dist_to_goal 0.4였음but
             self.to_goal_flag = True
             self.get_logger().info(f'FOLLOW_TO_GOAL_IS_ACTIVATED.. dist:{dist_to_goal}')
             return
@@ -364,9 +368,12 @@ class PathFollower(Node):
             goal_to_current = math.sqrt((current_x -self.goal_x) ** 2 + 
                                                 (current_y - self.goal_y) ** 2)
             
+            dist_to_goal = math.sqrt((self.goal_x) ** 2 + 
+                                            (self.goal_y) ** 2)
+            
 
             #정지조건부분
-            if self.distance_to_goal < 0.2 or goal_to_current < 0.2:
+            if dist_to_goal <= 0.25 or goal_to_current <= 0.25: #0.2
                 cmd.linear.x = 0.0
                 cmd.angular.z = 0.0
                 self.vel_pub.publish(cmd)

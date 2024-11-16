@@ -61,6 +61,8 @@ def main():
     talk_with_arduino = PublisherSubscriber()
     docking_pub = Bool()
     docking_pub.data = False
+    charging_pub = Bool()
+    charging_pub.data = False
 
     #목적지 설정 (PoseStamped로 전달)
     goal_pose = PoseStamped()
@@ -140,14 +142,14 @@ def main():
             grip_connect.data = 3
             talk_with_arduino.trailer_pub.publish(grip_connect)
             print('Route complete! Restarting...')
-            pass
+            time.sleep(3)
+            break
         elif result2 == TaskResult.CANCELED:
             print('Security route was canceled, exiting.')
             time.sleep(3)
         elif result2 == TaskResult.FAILED:
             print('Security route failed! Restarting from other side...')
             time.sleep(3)
-
 
     
     
@@ -156,18 +158,37 @@ def main():
     charge_station = PoseStamped()
     charge_station.header.frame_id = 'map'
     charge_station.header.stamp = navigator.get_clock().now().to_msg()
-    charge_station.pose.position.x = charge_state[0]
-    charge_station.pose.position.y = charge_state[1]
-    charge_station.pose.orientation.z = 0.0 #방향 어떻게 도착할지
-    charge_station.pose.orientation.w = 1.0
+    charge_station.pose.position.x = charge_pose[0]
+    charge_station.pose.position.y = charge_pose[1]
+    charge_station.pose.orientation.z = -0.668 #방향 어떻게 도착할지
+    charge_station.pose.orientation.w = 0.743
 
     # navigator.goToPose(shipping_destination)
     path3 = navigator.getPath(trailer_goal_station,charge_station, planner_id="GridBased")
     navigator.followPath(path3)
 
+    result = None
+    while not navigator.isTaskComplete():
+        feedback = navigator.getFeedback()
+        if feedback:
+            print(f"Remaining distance: {feedback}")
+    
+    result3 = navigator.getResult()
+    time.sleep(2)
+    
+    while rclpy.ok():
+        rclpy.spin_once(talk_with_arduino)
+        if result3 == TaskResult.SUCCEEDED:
+            charging_pub.data = True  # 주행 성공 시 True 값 퍼블리시
+            talk_with_arduino.publish_charging.publish(charging_pub)
+            print("Navigation succeeded, charging started")
+            break
+        else:
+            print("Navigation failed or canceled")
+            break
+
+
     exit(0)
-
-
 
     navigator.lifecycleShutdown()
 
