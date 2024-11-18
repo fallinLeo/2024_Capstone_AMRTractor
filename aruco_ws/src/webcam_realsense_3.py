@@ -95,8 +95,8 @@ class DualArucoDetector(Node):
             [marker_size / 2, marker_size / 2, 0],
             [-marker_size / 2, marker_size / 2, 0]
         ], dtype='float32')
-        if self.get_clock().now().nanoseconds % 3:
-            corners, ids, _ = cv2.aruco.detectMarkers(img, self.aruco_dict, parameters=self.parameters)
+        
+        corners, ids, _ = cv2.aruco.detectMarkers(img, self.aruco_dict, parameters=self.parameters)
         
         if ids is not None:
             for i, marker_id in enumerate(ids):
@@ -227,7 +227,7 @@ class DualArucoDetector(Node):
             if color_frame:
                 img_realsense = np.asanyarray(color_frame.get_data())
                 self.process_aruco(img_realsense, self.cmtx_realsense, self.dist_realsense, 'camera')
-                if self.get_clock().now().nanoseconds % 20 == 0:
+                if self.get_clock().now().nanoseconds % 10 == 0:
                     scaled_img = cv2.resize(img_realsense, (640, 360), interpolation=cv2.INTER_AREA)
                     self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(scaled_img, "bgr8"))
 
@@ -237,7 +237,7 @@ class DualArucoDetector(Node):
             ret, img_webcam = self.cap.read()
             if ret:
                 self.process_aruco(img_webcam, self.cmtx_webcam, self.dist_webcam, 'base_link')
-                if self.get_clock().now().nanoseconds % 20 == 0:
+                if self.get_clock().now().nanoseconds % 10 == 0:
                     scaled_img = cv2.resize(img_webcam, (640, 360), interpolation=cv2.INTER_AREA)
                     self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(scaled_img, "bgr8"))
 
