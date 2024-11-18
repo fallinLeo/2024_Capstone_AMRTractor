@@ -65,21 +65,13 @@ class DualArucoDetector(Node):
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
         self.parameters = cv2.aruco.DetectorParameters()
 
-        # 마커 사이즈 (mm 단위)
-        self.marker_size = 40
-        self.marker_3d_edges = np.array([
-            [-self.marker_size / 2, -self.marker_size / 2, 0],
-            [self.marker_size / 2, -self.marker_size / 2, 0],
-            [self.marker_size / 2, self.marker_size / 2, 0],
-            [-self.marker_size / 2, self.marker_size / 2, 0]
-        ], dtype='float32')
-
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
         self.timer = self.create_timer(0.033, self.timer_callback)
 
         # 창 상태 플래그
         self.realsense_window_open = False
         self.webcam_window_open = False
+        
 
     def charge_flag_callback(self, msg):
         """charge_start 토픽에서 메시지를 받아 RealSense 카메라 사용 여부를 결정합니다."""
@@ -91,6 +83,21 @@ class DualArucoDetector(Node):
 
     def process_aruco(self, img, cmtx, dist, frame_id):
         # ArUco 마커 검출
+        if frame_id == 'camera':
+            marker_size = 80
+        elif frame_id == 'base_link':
+            marker_size = 40
+        else:
+            return
+        
+        # 마커 사이즈 (mm 단위)
+        marker_3d_edges = np.array([
+            [-marker_size / 2, -marker_size / 2, 0],
+            [marker_size / 2, -marker_size / 2, 0],
+            [marker_size / 2, marker_size / 2, 0],
+            [-marker_size / 2, marker_size / 2, 0]
+        ], dtype='float32')
+
         corners, ids, _ = cv2.aruco.detectMarkers(img, self.aruco_dict, parameters=self.parameters)
         
         if ids is not None:
@@ -98,7 +105,7 @@ class DualArucoDetector(Node):
                 if frame_id == "camera":
                     if marker_id[0] == self.set_id:
                         corner = corners[i].reshape((4, 2))
-                        ret, rvec, tvec = cv2.solvePnP(self.marker_3d_edges, corner, cmtx, dist)
+                        ret, rvec, tvec = cv2.solvePnP(marker_3d_edges, corner, cmtx, dist)
                         if ret:
                             Ry_90 = np.array([[0, 0, 1],   
                                                 [0, 1, 0],
@@ -157,7 +164,7 @@ class DualArucoDetector(Node):
                 if frame_id == "base_link":
                     if marker_id[0] == self.set_id:
                         corner = corners[i].reshape((4, 2))
-                        ret, rvec, tvec = cv2.solvePnP(self.marker_3d_edges, corner, cmtx, dist)
+                        ret, rvec, tvec = cv2.solvePnP(marker_3d_edges, corner, cmtx, dist)
                         if ret:
                             Ry_90 = np.array([[0, 0, 1],   
                                                     [0, 1, 0],
