@@ -28,8 +28,6 @@ class DualArucoDetector(Node):
         self.charge_flag_subscription = self.create_subscription(Bool, 'charge_start', self.charge_flag_callback, 10)
         self.chag_flag = True # charge_start 메시지의 상태 저장
 
-        self.publisher_webcam = self.create_publisher(Image, 'aruco_image', 10)
-        self.image_pub_webcam = self.create_publisher(String, 'webcam/image_processed', 10)
 
         self.set_id = 3
         self.subscription = self.create_subscription(Int32, 'set_id', self.listener_callback, 10)
@@ -97,8 +95,8 @@ class DualArucoDetector(Node):
             [marker_size / 2, marker_size / 2, 0],
             [-marker_size / 2, marker_size / 2, 0]
         ], dtype='float32')
-
-        corners, ids, _ = cv2.aruco.detectMarkers(img, self.aruco_dict, parameters=self.parameters)
+        if self.get_clock().now().nanoseconds % 3:
+            corners, ids, _ = cv2.aruco.detectMarkers(img, self.aruco_dict, parameters=self.parameters)
         
         if ids is not None:
             for i, marker_id in enumerate(ids):
@@ -229,7 +227,9 @@ class DualArucoDetector(Node):
             if color_frame:
                 img_realsense = np.asanyarray(color_frame.get_data())
                 self.process_aruco(img_realsense, self.cmtx_realsense, self.dist_realsense, 'camera')
-                self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(img_realsense, "bgr8"))
+                if self.get_clock().now().nanoseconds % 20 == 0:
+                    scaled_img = cv2.resize(img_realsense, (640, 360), interpolation=cv2.INTER_AREA)
+                    self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(scaled_img, "bgr8"))
 
 
         # 웹캠 처리
@@ -237,15 +237,9 @@ class DualArucoDetector(Node):
             ret, img_webcam = self.cap.read()
             if ret:
                 self.process_aruco(img_webcam, self.cmtx_webcam, self.dist_webcam, 'base_link')
-                self.publisher_webcam.publish(self.bridge.cv2_to_imgmsg(img_webcam, "bgr8"))
-
-
-                
-                # 이미지를 JPEG로 인코딩하여 String 메시지로 퍼블리시
-                _, jpeg_image = cv2.imencode('.jpg', img_webcam)
-                base64_image = base64.b64encode(jpeg_image.tobytes()).decode('utf-8')
-                image_msg = String(data=base64_image)
-                self.image_pub_webcam.publish(image_msg)
+                if self.get_clock().now().nanoseconds % 20 == 0:
+                    scaled_img = cv2.resize(img_webcam, (640, 360), interpolation=cv2.INTER_AREA)
+                    self.publisher_realsense.publish(self.bridge.cv2_to_imgmsg(scaled_img, "bgr8"))
 
         # 'q' 키를 누르면 종료
         if cv2.waitKey(1) & 0xFF == ord('q'):
