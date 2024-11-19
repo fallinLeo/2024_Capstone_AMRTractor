@@ -151,8 +151,8 @@ class PathFollower(Node):
         #경로생성만 보려고 수정했었음
         # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
         if not self.path_created:
-            # self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
-            self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_yaw)        
+            self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
+            # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_yaw)        
             self.path_created = True  # 경로 생성되면
     
     def generate_path(self, start_x, start_y, goal_x, goal_y, goal_yaw):
@@ -204,7 +204,7 @@ class PathFollower(Node):
             waypoints.append(pose.pose.position)  # 경로 저장
 
 
-        waypoints = waypoints[::-1] ###
+        # waypoints = waypoints[::-1] ###
 
         # 경로 퍼블리시
         self.path_pub.publish(path_msg)

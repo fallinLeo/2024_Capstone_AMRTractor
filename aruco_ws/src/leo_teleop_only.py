@@ -28,6 +28,7 @@ class PathFollower(Node):
         self.goal_y = None
         self.goal_yaw = None
         self.current_index = 2
+        self.pathtwo = False
         self.previous_odom = None
         self.first_odom = True  # 처음 odom 호출을 체크하기 위한 플래그
         self.initial_yaw = 0.0  # 처음 yaw 값을 저장할 변수
@@ -60,11 +61,7 @@ class PathFollower(Node):
         self.cnt = 0
         self.to_goal_flag = False
         self.doc_succeed = False
-                
-        #정면 차징 도킹 파라미터
-        self.charge_flag = self.create_subscription(Bool,'charge_start',self.charge_flag_callback,10)
-        self.chag_flag = False
-        self.forward_pa = 1
+        
 
     
     def odom_callback(self, msg):
@@ -92,9 +89,6 @@ class PathFollower(Node):
     def docking_flag_callback(self,msg):
         self.doc_flag = msg.data
     
-    def charge_flag_callback(self,msg):
-        self.chag_flag = msg.data
-        if self.chag_flag ==True : self.forward_pa = -1 #리버스
 
 
     def timer_callback(self):
@@ -152,6 +146,7 @@ class PathFollower(Node):
 
         #경로생성만 보려고 수정했었음
         # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
+        
         if not self.path_created:
             # self.waypoints = self.generate_path(self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_x, self.goal_y, self.goal_yaw)
             self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y,self.goal_yaw)        
@@ -181,6 +176,8 @@ class PathFollower(Node):
         
         B = np.array([start_x, goal_x, goal_yaw, 0])
 
+
+
         # 계수를 구합니다.
         coefficients = np.linalg.solve(A, B)
 
@@ -199,8 +196,8 @@ class PathFollower(Node):
         for i in range(len(x_points)):
             pose = PoseStamped()
             pose.header = path_msg.header
-            pose.pose.position.x = -y_points[i] * self.forward_pa  # x축 값 설정
-            pose.pose.position.y = -x_points[i] * self.forward_pa  # y축 기준으로 경로 설정
+            pose.pose.position.x = -y_points[i]  # x축 값 설정
+            pose.pose.position.y = -x_points[i]  # y축 기준으로 경로 설정
             pose.pose.position.z = 0.0
             path_msg.poses.append(pose)
             waypoints.append(pose.pose.position)  # 경로 저장
@@ -240,6 +237,14 @@ class PathFollower(Node):
 
         dist_to_goal = math.sqrt((self.goal_x) ** 2 + 
                                             (self.goal_y) ** 2)
+        
+        #경로 두번째 생성?
+        # if self.pathtwo==False and self.current_index >=len(waypoints)//2 :
+        #     self.path_created = False
+        #     self.current_index = 2
+        #     self.pathtwo = True
+        #     print("second_pathcreate")
+        #     return
         
         #goal함수로 탈출 코드
         if self.current_index >= len(waypoints)-2 or dist_to_goal <= 0.4 or self.current_index==len(waypoints):
@@ -307,12 +312,16 @@ class PathFollower(Node):
         #     angular_output = -math.atan2(self.goal_x,self.goal_y)
         #     self.get_logger().info(f'angular_output: {angular_output}')
 
+            
+            
+        print(f"goal_to_current : {dist_to_goal}")
+
 
         # 이전 오차 저장
         self.prev_error = error_heading
 
         # 속도 명령 생성
-        cmd.linear.x = -0.1 * self.forward_pa  # 일정한 선속도
+        cmd.linear.x = -0.1 # 일정한 선속도
         cmd.angular.z = angular_output  # PD 제어기 각속도 출력
 
         self.vel_pub.publish(cmd)
@@ -325,7 +334,7 @@ class PathFollower(Node):
 
         prev_error = -goal_yaw  # 초기 오차값
 
-        if abs(goal_yaw) <=2.97:
+        if abs(goal_yaw) <=2.98:
             cmd.linear.x = 0.0
 
             # 현재 goal_yaw가 목표 yaw (0.0)에서 얼마나 차이 나는지 계산
@@ -344,10 +353,10 @@ class PathFollower(Node):
             prev_error = error
             # self.cnt += 1
             self.vel_pub.publish(cmd)
-            print(f"goal_yaw : {goal_yaw}")
+            
         else : # 목표 yaw에 도달하면 멈춤
             cmd.angular.z = 0.0
-            cmd.linear.x = -0.07 * self.forward_pa # 일정한 선속도
+            cmd.linear.x = -0.07 # 일정한 선속도
             self.vel_pub.publish(cmd)
 
             # Base link 기준 (0, 0)에서 시작하므로 현재 위치는 항상 (0, 0)
@@ -356,10 +365,13 @@ class PathFollower(Node):
 
             goal_to_current = math.sqrt((current_x -self.goal_x) ** 2 + 
                                                 (current_y - self.goal_y) ** 2)
+            dist_to_goal = math.sqrt((self.goal_x) ** 2 + 
+                                            (self.goal_y) ** 2)
             
-
+            
+            print(f"goal_to_current : {dist_to_goal}")
             #정지조건부분
-            if self.distance_to_goal < 0.2 or goal_to_current < 0.2:
+            if dist_to_goal < 0.25 or goal_to_current < 0.25: #0.2
                 cmd.linear.x = 0.0
                 cmd.angular.z = 0.0
                 self.vel_pub.publish(cmd)
