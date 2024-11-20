@@ -147,6 +147,7 @@ class PathFollower(Node):
 
         # 목표 지점까지의 거리 계산
         self.distance_to_goal = math.sqrt((self.goal_x) ** 2 + (self.goal_y) ** 2)
+        print(f"distance_to_goal : {self.distance_to_goal}")
 
         #경로생성만 보려고 수정했었음
         # self.waypoints = self.generate_path(self.goal_x, self.goal_y,self.current_pose.pose.position.x, self.current_pose.pose.position.y, self.goal_yaw)
@@ -220,8 +221,8 @@ class PathFollower(Node):
         Use PD control to follow the planned path with lookahead distance.
         """
         
-        if self.current_index >= len(waypoints):
-            return
+        # if self.current_index >= len(waypoints):
+        #     return
 
         cmd = Twist()
 
@@ -241,7 +242,7 @@ class PathFollower(Node):
                                             (self.goal_y) ** 2)
         
         #goal함수로 탈출 코드
-        if self.current_index >= len(waypoints)-2 or dist_to_goal <= 0.5 or self.current_index==len(waypoints): #dist_to_goal 0.4였음but
+        if self.current_index >= len(waypoints)-2 or dist_to_goal <= 0.25 or self.current_index==len(waypoints): #dist_to_goal 0.4였음but
             self.to_goal_flag = True
             self.get_logger().info(f'FOLLOW_TO_GOAL_IS_ACTIVATED.. dist:{dist_to_goal}')
             return
@@ -355,7 +356,6 @@ class PathFollower(Node):
             # 이전 오차 업데이트
             prev_error = error
             self.vel_pub.publish(cmd)
-            print(f"goal_yaw : {goal_yaw}")
         else : # 목표 yaw에 도달하면 멈춤
             cmd.angular.z = 0.0
             cmd.linear.x = -0.07  # 일정한 선속도  * self.forward_pa
@@ -373,7 +373,7 @@ class PathFollower(Node):
             
 
             #정지조건부분
-            if dist_to_goal <= 0.25 or goal_to_current <= 0.25: #0.2
+            if dist_to_goal <= 0.12 or goal_to_current <= 0.12: #0.2
                 cmd.linear.x = 0.0
                 cmd.angular.z = 0.0
                 self.vel_pub.publish(cmd)
