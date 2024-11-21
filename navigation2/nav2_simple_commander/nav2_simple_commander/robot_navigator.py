@@ -52,35 +52,56 @@ class PublisherSubscriber(Node):
         super().__init__('publisher_subscriber')
 
         #publisher node create(msg type, topic name, qos)
-        self.publisher_ = self.create_publisher(Int32, 'micro_ros_arduino_subscriber', 10)
+        # self.publisher_ = self.create_publisher(Int32, 'micro_ros_arduino_subscriber', 10)
         self.publish_docking = self.create_publisher(Bool,'docking_start',10)
+        self.publish_charging = self.create_publisher(Bool,'charge_start',10)
         #sub node create(smgs type, topic name, callback func, qos)
         self.subscription = self.create_subscription(
-            Int32,
+            Bool,
             'trailer_start',
             self.listener_callback,
-            10)
+            20)
         
         self.trailer_pub = self.create_publisher(Int32,'gripper_connect',10)
         
-        timer_period = 5  # seconds
+        # timer_period = 5  # seconds
         #susing timer (every 5s publish)
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.ros_to_ard = 0
-        self.received = Int32()
+        # self.timer = self.create_timer(timer_period, self.timer_callback)
+        # self.ros_to_ard = 0
+        self.received = Bool()
+        self.received.data = False
+        
         self.publish = False
 
 
-    def timer_callback(self):
-        msg = Int32()
-        msg.data = self.ros_to_ard
-        self.publisher_.publish(msg)
-        self.get_logger().info('Publishing: "%d"' % msg.data)
+    # def timer_callback(self):
+    #     msg = Int32()
+    #     msg.data = self.ros_to_ard
+    #     self.publisher_.publish(msg)
+    #     self.get_logger().info('Publishing: "%d"' % msg.data)
+
+    def listener_callback(self, msg):
+        self.get_logger().info('Listener callback triggered: "%s"' % msg.data)
+         
+        self.received.data = msg.data 
+
+##adding1
+class StartNode(Node):
+
+    def __init__(self):
+        super().__init__('start')
+        self.subscription = self.create_subscription(
+            Bool,
+            'path_start',
+            self.listener_callback,
+            10)
+        
+        self.start_received = Bool()
 
     def listener_callback(self, msg):
         self.get_logger().info('Received response: "%s"' % msg.data)
-         
-        self.received.data = msg.data 
+        self.start_received.data = msg.data 
+###adding
 
 
 
